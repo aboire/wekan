@@ -99,6 +99,9 @@ template(name="boardActivities")
           else
             | {{{_ 'activity-added' memberLink cardLink}}}.
 
+        if($eq activityType 'moveCardBoard')
+          | {{{_ 'activity-moved' cardLink oldBoardName boardName}}}.
+
         if($eq activityType 'moveCard')
           | {{{_ 'activity-moved' cardLink oldList.title list.title}}}.
 
@@ -113,6 +116,12 @@ template(name="boardActivities")
 
         if($eq activityType 'removedLabel')
           | {{{_ 'activity-removed-label' lastLabel cardLink}}}.
+
+        if($eq activityType 'setCustomField')
+          | {{{_ 'activity-set-customfield' lastCustomField lastCustomFieldValue cardLink}}}.
+
+        if($eq activityType 'unsetCustomField')
+          | {{{_ 'activity-unset-customfield' lastCustomField cardLink}}}.
 
         if($eq activityType 'unjoinMember')
           if($eq user._id member._id)
@@ -129,7 +138,7 @@ template(name="cardActivities")
       p.activity-desc
         +memberName(user=user)
         if($eq activityType 'createCard')
-          | {{_ 'activity-added' cardLabel list.title}}.
+          | {{_ 'activity-added' cardLabel listName}}.
         if($eq activityType 'importCard')
           | {{{_ 'activity-imported' cardLabel list.title sourceLink}}}.
         if($eq activityType 'joinMember')
@@ -170,6 +179,10 @@ template(name="cardActivities")
           | {{_ 'activity-sent' cardLabel boardLabel}}.
         if($eq activityType 'moveCard')
           | {{_ 'activity-moved' cardLabel oldList.title list.title}}.
+
+        if($eq activityType 'moveCardBoard')
+          | {{{_ 'activity-moved' cardLink oldBoardName boardName}}}.
+
         if($eq activityType 'addAttachment')
           | {{{_ 'activity-attached' attachmentLink cardLabel}}}.
           if attachment.isImage
@@ -188,7 +201,25 @@ template(name="cardActivities")
           .activity-checklist(href="{{ card.absoluteUrl }}")
             +viewer
               = checklistItem.title
+        
+        if(currentData.timeKey)
+          | {{{_ activityType }}}
+          = ' '
+          i(title=currentData.timeValue).activity-meta {{ moment currentData.timeValue 'LLL' }}
+          if (currentData.timeOldValue)
+              = ' '                                                                                    
+              | {{{_ "previous_as" }}}
+              = ' '
+              i(title=currentData.timeOldValue).activity-meta {{ moment currentData.timeOldValue 'LLL' }}
+          = ' @'
+        else if(currentData.timeValue)
+          | {{{_ activityType currentData.timeValue}}}
+        
 
+        if($eq activityType 'deleteComment')
+          | {{{_ 'activity-deleteComment' currentData.commentId}}}.
+        if($eq activityType 'editComment')
+          | {{{_ 'activity-editComment' currentData.commentId}}}.
         if($eq activityType 'addComment')
           +inlinedForm(classNames='js-edit-comment')
             +editor(autofocus=true)

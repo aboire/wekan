@@ -1,3 +1,5 @@
+import { Meteor } from 'meteor/meteor';
+
 Triggers = new Mongo.Collection('triggers');
 
 Triggers.mutations({
@@ -8,6 +10,16 @@ Triggers.mutations({
       },
     };
   },
+});
+
+Triggers.before.insert((userId, doc) => {
+  doc.createdAt = new Date();
+  doc.updatedAt = doc.createdAt;
+});
+
+Triggers.before.update((userId, doc, fieldNames, modifier) => {
+  modifier.$set = modifier.$set || {};
+  modifier.$set.updatedAt = new Date();
 });
 
 Triggers.allow({
@@ -23,7 +35,6 @@ Triggers.allow({
 });
 
 Triggers.helpers({
-
   description() {
     return this.desc;
   },
@@ -50,9 +61,17 @@ Triggers.helpers({
 
   labels() {
     const boardLabels = this.board().labels;
-    const cardLabels = _.filter(boardLabels, (label) => {
+    const cardLabels = _.filter(boardLabels, label => {
       return _.contains(this.labelIds, label._id);
     });
     return cardLabels;
   },
 });
+
+if (Meteor.isServer) {
+  Meteor.startup(() => {
+    Triggers._collection._ensureIndex({ modifiedAt: -1 });
+  });
+}
+
+export default Triggers;

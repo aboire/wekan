@@ -1,6 +1,6 @@
 BlazeLayout.setRoot('body');
 
-const i18nTagToT9n = (i18nTag) => {
+const i18nTagToT9n = i18nTag => {
   // t9n/i18n tags are same now, see: https://github.com/softwarerero/meteor-accounts-t9n/pull/129
   // but we keep this conversion function here, to be aware that that they are different system.
   return i18nTag;
@@ -20,14 +20,24 @@ const validator = {
   },
 };
 
-Template.userFormsLayout.onCreated(() => {
-  Meteor.subscribe('setting');
+Template.userFormsLayout.onCreated(function() {
+  const templateInstance = this;
+  templateInstance.currentSetting = new ReactiveVar();
+  templateInstance.isLoading = new ReactiveVar(false);
 
+  Meteor.subscribe('setting', {
+    onReady() {
+      templateInstance.currentSetting.set(Settings.findOne());
+      return this.stop();
+    },
+  });
 });
 
 Template.userFormsLayout.onRendered(() => {
-
-  AccountsTemplates.state.form.keys = new Proxy(AccountsTemplates.state.form.keys, validator);
+  AccountsTemplates.state.form.keys = new Proxy(
+    AccountsTemplates.state.form.keys,
+    validator,
+  );
 
   const i18nTag = navigator.language;
   if (i18nTag) {
@@ -37,9 +47,20 @@ Template.userFormsLayout.onRendered(() => {
 });
 
 Template.userFormsLayout.helpers({
-
   currentSetting() {
-    return Settings.findOne();
+    return Template.instance().currentSetting.get();
+  },
+
+  isLoading() {
+    return Template.instance().isLoading.get();
+  },
+
+  afterBodyStart() {
+    return currentSetting.customHTMLafterBodyStart;
+  },
+
+  beforeBodyEnd() {
+    return currentSetting.customHTMLbeforeBodyEnd;
   },
 
   languages() {
@@ -50,6 +71,8 @@ Template.userFormsLayout.helpers({
         name = 'Brezhoneg';
       } else if (lang.name === 'ig') {
         name = 'Igbo';
+      } else if (lang.name === 'oc') {
+        name = 'Occitan';
       }
       return { tag, name };
     }).sort(function(a, b) {
@@ -66,67 +89,19 @@ Template.userFormsLayout.helpers({
     const curLang = T9n.getLanguage() || 'en';
     return t9nTag === curLang;
   },
-/*
-  isCas() {
-    return Meteor.settings.public &&
-      Meteor.settings.public.cas &&
-      Meteor.settings.public.cas.loginUrl;
-  },
-
-  casSignInLabel() {
-    return TAPi18n.__('casSignIn', {}, T9n.getLanguage() || 'en');
-  },
-*/
 });
 
 Template.userFormsLayout.events({
-  'change .js-userform-set-language'(evt) {
-    const i18nTag = $(evt.currentTarget).val();
+  'change .js-userform-set-language'(event) {
+    const i18nTag = $(event.currentTarget).val();
     T9n.setLanguage(i18nTagToT9n(i18nTag));
-    evt.preventDefault();
-  },
-  'click button#cas'() {
-    Meteor.loginWithCas(function() {
-      if (FlowRouter.getRouteName() === 'atSignIn') {
-        FlowRouter.go('/');
-      }
-    });
-  },
-  'click #at-btn'(event) {
-    /* All authentication method can be managed/called here.
-       !! DON'T FORGET to correctly fill the fields of the user during its creation if necessary authenticationMethod : String !!
-    */
-    const authenticationMethodSelected = $('.select-authentication').val();
-    // Local account
-    if (authenticationMethodSelected === 'password') {
-      return;
-    }
-
-    // Stop submit #at-pwd-form
     event.preventDefault();
-    event.stopImmediatePropagation();
-
-    const email = $('#at-field-username_and_email').val();
-    const password = $('#at-field-password').val();
-
-    // Ldap account
-    if (authenticationMethodSelected === 'ldap') {
-      // Check if the user can use the ldap connection
-      Meteor.subscribe('user-authenticationMethod', email, {
-        onReady() {
-          const user = Users.findOne();
-          if (user === undefined || user.authenticationMethod === 'ldap') {
-            // Use the ldap connection package
-            Meteor.loginWithLDAP(email, password, function(error) {
-              if (!error) {
-                // Connection
-                return FlowRouter.go('/');
-              }
-              return error;
-            });
-          }
-          return this.stop();
-        },
+  },
+  'click #at-btn'(event, templateInstance) {
+    if (FlowRouter.getRouteName() === 'atSignIn') {
+      templateInstance.isLoading.set(true);
+      authentication(event, templateInstance).then(() => {
+        templateInstance.isLoading.set(false);
       });
     }
   },
@@ -137,3 +112,70 @@ Template.defaultLayout.events({
     Modal.close();
   },
 });
+
+async function authentication(event, templateInstance) {
+  const match = $('#at-field-username_and_email').val();
+  const password = $('#at-field-password').val();
+
+  if (!match || !password) return undefined;
+
+  const result = await getAuthenticationMethod(
+    templateInstance.currentSetting.get(),
+    match,
+  );
+
+  if (result === 'password') return undefined;
+
+  // Stop submit #at-pwd-form
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  switch (result) {
+    case 'ldap':
+      return new Promise(resolve => {
+        Meteor.loginWithLDAP(match, password, function() {
+          resolve(FlowRouter.go('/'));
+        });
+      });
+
+    case 'cas':
+      return new Promise(resolve => {
+        Meteor.loginWithCas(match, password, function() {
+          resolve(FlowRouter.go('/'));
+        });
+      });
+
+    default:
+      return undefined;
+  }
+}
+
+function getAuthenticationMethod(
+  { displayAuthenticationMethod, defaultAuthenticationMethod },
+  match,
+) {
+  if (displayAuthenticationMethod) {
+    return $('.select-authentication').val();
+  }
+  return getUserAuthenticationMethod(defaultAuthenticationMethod, match);
+}
+
+function getUserAuthenticationMethod(defaultAuthenticationMethod, match) {
+  return new Promise(resolve => {
+    try {
+      Meteor.subscribe('user-authenticationMethod', match, {
+        onReady() {
+          const user = Users.findOne();
+
+          const authenticationMethod = user
+            ? user.authenticationMethod
+            : defaultAuthenticationMethod;
+
+          resolve(authenticationMethod);
+        },
+      });
+    } catch (error) {
+      resolve(defaultAuthenticationMethod);
+    }
+  });
+}

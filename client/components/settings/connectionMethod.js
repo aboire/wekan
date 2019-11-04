@@ -6,9 +6,11 @@ Template.connectionMethod.onCreated(function() {
       // TODO : add a management of different languages
       // (ex {value: ldap, text: TAPi18n.__('ldap', {}, T9n.getLanguage() || 'en')})
       this.authenticationMethods.set([
-        {value: 'password'},
+        { value: 'password' },
         // Gets only the authentication methods availables
-        ...Object.entries(result).filter((e) => e[1]).map((e) => ({value: e[0]})),
+        ...Object.entries(result)
+          .filter(e => e[1])
+          .map(e => ({ value: e[0] })),
       ]);
     }
 
@@ -24,11 +26,16 @@ Template.connectionMethod.onCreated(function() {
 
 Template.connectionMethod.onRendered(() => {
   // Moves the select boxe in the first place of the at-pwd-form div
-  $('.at-form-authentication').detach().prependTo('.at-pwd-form');
+  $('.at-form-authentication')
+    .detach()
+    .prependTo('.at-pwd-form');
 });
 
 Template.connectionMethod.helpers({
   authentications() {
     return Template.instance().authenticationMethods.get();
+  },
+  isSelected(match) {
+    return Template.instance().data.authenticationMethod === match;
   },
 });

@@ -1,20 +1,25 @@
 const passwordField = AccountsTemplates.removeField('password');
 const emailField = AccountsTemplates.removeField('email');
 
-AccountsTemplates.addFields([{
-  _id: 'username',
-  type: 'text',
-  displayName: 'username',
-  required: true,
-  minLength: 2,
-}, emailField, passwordField, {
-  _id: 'invitationcode',
-  type: 'text',
-  displayName: 'Invitation Code',
-  required: false,
-  minLength: 6,
-  template: 'invitationCode',
-}]);
+AccountsTemplates.addFields([
+  {
+    _id: 'username',
+    type: 'text',
+    displayName: 'username',
+    required: true,
+    minLength: 2,
+  },
+  emailField,
+  passwordField,
+  {
+    _id: 'invitationcode',
+    type: 'text',
+    displayName: 'Invitation Code',
+    required: false,
+    minLength: 6,
+    template: 'invitationCode',
+  },
+]);
 
 AccountsTemplates.configure({
   defaultLayout: 'userFormsLayout',
@@ -35,8 +40,7 @@ AccountsTemplates.configure({
   },
 });
 
-['signIn'].forEach(
-  (routeName) => AccountsTemplates.configureRoute(routeName));
+['signIn'].forEach(routeName => AccountsTemplates.configureRoute(routeName));
 
 // We display the form to change the password in a popup window that already
 // have a title, so we unset the title automatically displayed by useraccounts.
@@ -58,15 +62,18 @@ AccountsTemplates.configure({
 });*/
 
 if (Meteor.isServer) {
-
   /*['resetPassword-subject', 'resetPassword-text', 'verifyEmail-subject', 'verifyEmail-text', 'enrollAccount-subject', 'enrollAccount-text'].forEach((str) => {
     const [templateName, field] = str.split('-');
     Accounts.emailTemplates[templateName][field] = (user, url) => {
-      return TAPi18n.__(`email-${str}`, {
-        url,
-        user: user.getName(),
-        siteName: Accounts.emailTemplates.siteName,
-      }, user.getLanguage());
+      return TAPi18n.__(
+        `email-${str}`,
+        {
+          url,
+          user: user.getName(),
+          siteName: Accounts.emailTemplates.siteName,
+        },
+        user.getLanguage(),
+      );
     };
   });*/
 }

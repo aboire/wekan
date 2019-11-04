@@ -6,10 +6,11 @@ export const loginGen = (loginRequest) => {
     return null;
   }
 
-    const response = HTTP.call( 'POST', `${Meteor.settings.endpoint}/${Meteor.settings.module}/person/authenticate`, {
+    const response = HTTP.call( 'POST', `${Meteor.settings.endpoint}/${Meteor.settings.module}/person/authenticatetoken`, {
       params: {
         "email": loginRequest.email,
         "pwd": loginRequest.pwd,
+        "tokenName": "wekan"
       }
     });
     console.log(response);
@@ -28,9 +29,17 @@ export const loginGen = (loginRequest) => {
       //ok valide
       var userM = Meteor.users.findOne({'_id':retourId});
       console.log(userM);
+      const token = response.data.token ? response.data.token : false;
       if(userM){
         //Meteor.user existe
         userId= userM._id;
+        if (token) {
+          Meteor.users.update(userId, {
+            $set: {
+              token
+            }
+          });
+        }
         Meteor.users.update(userId,{$set: {name: response.data.account.name,
         emails: [{ address: response.data.account.email, verified: true }]}});
         if(response.data.account.profilThumbImageUrl){
@@ -54,7 +63,13 @@ export const loginGen = (loginRequest) => {
         }
 
         userId = Meteor.users.insert(newUser);
-
+        if (token) {
+          Meteor.users.update(userId, {
+            $set: {
+              token
+            }
+          });
+        }
       }
 
 

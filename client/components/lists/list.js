@@ -21,11 +21,22 @@ BlazeComponent.extendComponent({
     const boardComponent = this.parentComponent().parentComponent();
 
     function userIsMember() {
-      return Meteor.user() && Meteor.user().isBoardMember() && !Meteor.user().isCommentOnly();
+      return (
+        Meteor.user() &&
+        Meteor.user().isBoardMember() &&
+        !Meteor.user().isCommentOnly()
+      );
     }
 
     const itemsSelector = '.js-minicard:not(.placeholder, .js-card-composer)';
     const $cards = this.$('.js-minicards');
+
+    if (Utils.isMiniScreen()) {
+      $('.js-minicards').sortable({
+        handle: '.handle',
+      });
+    }
+
     $cards.sortable({
       connectWith: '.js-minicards:not(.js-list-full)',
       tolerance: 'pointer',
@@ -35,10 +46,16 @@ BlazeComponent.extendComponent({
         if (MultiSelection.isActive()) {
           const andNOthers = $cards.find('.js-minicard.is-checked').length - 1;
           if (andNOthers > 0) {
-            helper.append($(Blaze.toHTML(HTML.DIV(
-              { 'class': 'and-n-other' },
-              TAPi18n.__('and-n-other-card', { count: andNOthers })
-            ))));
+            helper.append(
+              $(
+                Blaze.toHTML(
+                  HTML.DIV(
+                    { class: 'and-n-other' },
+                    TAPi18n.__('and-n-other-card', { count: andNOthers }),
+                  ),
+                ),
+              ),
+            );
           }
         }
         return helper;
@@ -60,7 +77,20 @@ BlazeComponent.extendComponent({
         const nCards = MultiSelection.isActive() ? MultiSelection.count() : 1;
         const sortIndex = calculateIndex(prevCardDom, nextCardDom, nCards);
         const listId = Blaze.getData(ui.item.parents('.list').get(0))._id;
-        const swimlaneId = Blaze.getData(ui.item.parents('.swimlane').get(0))._id;
+        const currentBoard = Boards.findOne(Session.get('currentBoard'));
+        let swimlaneId = '';
+        const boardView = (Meteor.user().profile || {}).boardView;
+        if (
+          boardView === 'board-view-swimlanes' ||
+          currentBoard.isTemplatesBoard()
+        )
+          swimlaneId = Blaze.getData(ui.item.parents('.swimlane').get(0))._id;
+        else if (
+          boardView === 'board-view-lists' ||
+          boardView === 'board-view-cal' ||
+          !boardView
+        )
+          swimlaneId = currentBoard.getDefaultSwimline()._id;
 
         // Normally the jquery-ui sortable library moves the dragged DOM element
         // to its new position, which disrupts Blaze reactive updates mechanism
@@ -73,12 +103,17 @@ BlazeComponent.extendComponent({
 
         if (MultiSelection.isActive()) {
           Cards.find(MultiSelection.getMongoSelector()).forEach((card, i) => {
-            card.move(swimlaneId, listId, sortIndex.base + i * sortIndex.increment);
+            card.move(
+              currentBoard._id,
+              swimlaneId,
+              listId,
+              sortIndex.base + i * sortIndex.increment,
+            );
           });
         } else {
           const cardDomElement = ui.item.get(0);
           const card = Blaze.getData(cardDomElement);
-          card.move(swimlaneId, listId, sortIndex.base);
+          card.move(currentBoard._id, swimlaneId, listId, sortIndex.base);
         }
         boardComponent.setIsDragging(false);
       },

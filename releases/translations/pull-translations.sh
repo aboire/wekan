@@ -36,6 +36,9 @@ tx pull -f -l en_GB
 echo "Greek:"
 tx pull -f -l el
 
+echo "Slovenian:"
+tx pull -f -l sl_SI
+
 echo "Spanish:"
 tx pull -f -l es
 
@@ -87,6 +90,9 @@ tx pull -f -l ko
 echo "Latvian (Latvia):"
 tx pull -f -l lv_LV
 
+echo "Macedonian:"
+tx pull -f -l mk
+
 echo "Mongolian (Mongolia):"
 tx pull -f -l mn_MN
 
@@ -95,6 +101,9 @@ tx pull -f -l nl
 
 echo "Norwegian:"
 tx pull -f -l no
+
+echo "Occitan:"
+tx pull -f -l oc
 
 echo "Polish:"
 tx pull -f -l pl
@@ -140,3 +149,6 @@ tx pull -f -l zh_CN
 
 echo "Chinese (Taiwan)"
 tx pull -f -l zh_TW
+
+echo "Chinese (Hong Kong)"
+tx pull -f -l zh_HK

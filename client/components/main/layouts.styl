@@ -2,6 +2,35 @@
 
 global-reset()
 
+*
+  -webkit-box-sizing: unset
+  box-sizing: unset
+
+.note-popover .popover-content .note-color-palette div .note-color-btn, .panel-heading.note-toolbar .note-color-palette div .note-color-btn
+  background: none
+
+a:focus
+  outline: unset
+  outline-offset: unset
+
+a:hover,a:focus
+  color: unset
+  text-decoration: unset
+
+.badge
+  display: unset
+  min-width: unset
+  padding: unset
+  font-size: unset
+  font-weight: unset
+  line-height: unset
+  color: unset
+  text-align: unset
+  white-space: unset
+  vertical-align: unset
+  background-color: unset
+  border-radius: unset
+
 html, body, input, select, textarea, button
   font: 14px Roboto, "Helvetica Neue", Arial, Helvetica, sans-serif
   line-height: 18px
@@ -61,7 +90,7 @@ body
       display: block
       float: right
       font-size: 24px
-  
+
   .modal-content-wide
     width: 800px
     min-height: 0px
@@ -203,6 +232,7 @@ kbd
   background: darken(white, 2%)
   border-radius: 3px
   border: 1px solid darken(white, 10%)
+  color: unset
   box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.15)
 
 .clear
@@ -290,7 +320,7 @@ kbd
 // Implement a thiner close icon as suggested in
 // https://github.com/FortAwesome/Font-Awesome/issues/1540#issuecomment-68689950
 .fa.fa-times-thin:before
-  content: '\00d7';
+  content: '\00d7'
 
 .fa.fa-globe.colorful, .fa.fa-bell.colorful
   color: #4caf50
@@ -348,6 +378,12 @@ a
 
 .viewer
   min-height: 18px
+  display: block
+  word-wrap: break-word
+
+  table
+    word-wrap: normal
+    word-break: normal
 
   ol
     list-style-type: decimal
@@ -385,8 +421,8 @@ a
 
 @media screen and (max-width: 800px)
   #content
-    margin: 1px 0px 49px 0px
-    height: calc(100% - 96px)
+    margin: 1px 0px 0px 0px
+    height: calc(100% - 0px)
 
     > .wrapper
       margin-top: 0px
@@ -395,7 +431,110 @@ a
     height: 100%
     margin: 0px
 
+  .panel-default
+    width: 83vw
+
 .inline-input
   height: 37px
   margin: 8px 10px 0 0
   width: 50px
+
+.select-authentication
+  width: 100%
+
+.auth-layout
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  height: 100%
+
+  .auth-dialog
+    margin: 0 !important
+
+.loadingText
+  text-align: center
+
+.lds-roller
+  display: block
+  margin: auto
+  position: relative
+  width: 64px
+  height: 64px
+
+  div
+    animation: lds-roller 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite
+    transform-origin: 32px 32px
+
+  div:after
+    content: " "
+    display: block
+    position: absolute
+    width: 6px
+    height: 6px
+    border-radius: 50%
+    background: #dedede
+    margin: -3px 0 0 -3px
+
+  div:nth-child(1)
+    animation-delay: -0.036s
+
+  div:nth-child(1):after
+    top: 50px
+    left: 50px
+
+  div:nth-child(2)
+    animation-delay: -0.072s
+
+  div:nth-child(2):after
+    top: 54px
+    left: 45px
+
+  div:nth-child(3)
+    animation-delay: -0.108s
+
+  div:nth-child(3):after
+    top: 57px
+    left: 39px
+
+  div:nth-child(4)
+    animation-delay: -0.144s
+
+  div:nth-child(4):after
+    top: 58px
+    left: 32px
+
+  div:nth-child(5)
+    animation-delay: -0.18s
+
+  div:nth-child(5):after
+    top: 57px
+    left: 25px
+
+  div:nth-child(6)
+    animation-delay: -0.216s
+
+  div:nth-child(6):after
+    top: 54px
+    left: 19px
+
+  div:nth-child(7)
+    animation-delay: -0.252s
+
+  div:nth-child(7):after
+    top: 50px
+    left: 14px
+
+  div:nth-child(8)
+    animation-delay: -0.288s
+
+  div:nth-child(8):after
+    top: 45px
+    left: 10px
+
+@keyframes lds-roller
+  0%
+    transform: rotate(0deg)
+
+  100%
+    transform: rotate(360deg)

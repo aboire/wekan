@@ -1,3 +1,5 @@
+import { Meteor } from 'meteor/meteor';
+
 Actions = new Mongo.Collection('actions');
 
 Actions.allow({
@@ -12,8 +14,26 @@ Actions.allow({
   },
 });
 
+Actions.before.insert((userId, doc) => {
+  doc.createdAt = new Date();
+  doc.modifiedAt = doc.createdAt;
+});
+
+Actions.before.update((userId, doc, fieldNames, modifier) => {
+  modifier.$set = modifier.$set || {};
+  modifier.$set.modifiedAt = new Date();
+});
+
 Actions.helpers({
   description() {
     return this.desc;
   },
 });
+
+if (Meteor.isServer) {
+  Meteor.startup(() => {
+    Actions._collection._ensureIndex({ modifiedAt: -1 });
+  });
+}
+
+export default Actions;

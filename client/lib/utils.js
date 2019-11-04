@@ -2,22 +2,104 @@ Utils = {
   // XXX We should remove these two methods
   goBoardId(_id) {
     const board = Boards.findOne(_id);
-    return board && FlowRouter.go('board', {
-      id: board._id,
-      slug: board.slug,
-    });
+    return (
+      board &&
+      FlowRouter.go('board', {
+        id: board._id,
+        slug: board.slug,
+      })
+    );
   },
 
   goCardId(_id) {
     const card = Cards.findOne(_id);
     const board = Boards.findOne(card.boardId);
-    return board && FlowRouter.go('card', {
-      cardId: card._id,
-      boardId: board._id,
-      slug: board.slug,
-    });
+    return (
+      board &&
+      FlowRouter.go('card', {
+        cardId: card._id,
+        boardId: board._id,
+        slug: board.slug,
+      })
+    );
   },
-
+  MAX_IMAGE_PIXEL: Meteor.settings.public.MAX_IMAGE_PIXEL,
+  COMPRESS_RATIO: Meteor.settings.public.IMAGE_COMPRESS_RATIO,
+  processUploadedAttachment(card, fileObj, callback) {
+    const next = attachment => {
+      if (typeof callback === 'function') {
+        callback(attachment);
+      }
+    };
+    if (!card) {
+      return next();
+    }
+    const file = new FS.File(fileObj);
+    if (card.isLinkedCard()) {
+      file.boardId = Cards.findOne(card.linkedId).boardId;
+      file.cardId = card.linkedId;
+    } else {
+      file.boardId = card.boardId;
+      file.swimlaneId = card.swimlaneId;
+      file.listId = card.listId;
+      file.cardId = card._id;
+    }
+    file.userId = Meteor.userId();
+    if (file.original) {
+      file.original.name = fileObj.name;
+    }
+    return next(Attachments.insert(file));
+  },
+  shrinkImage(options) {
+    // shrink image to certain size
+    const dataurl = options.dataurl,
+      callback = options.callback,
+      toBlob = options.toBlob;
+    let canvas = document.createElement('canvas'),
+      image = document.createElement('img');
+    const maxSize = options.maxSize || 1024;
+    const ratio = options.ratio || 1.0;
+    const next = function(result) {
+      image = null;
+      canvas = null;
+      if (typeof callback === 'function') {
+        callback(result);
+      }
+    };
+    image.onload = function() {
+      let width = this.width,
+        height = this.height;
+      let changed = false;
+      if (width > height) {
+        if (width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+          changed = true;
+        }
+      } else if (height > maxSize) {
+        width *= maxSize / height;
+        height = maxSize;
+        changed = true;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(this, 0, 0, width, height);
+      if (changed === true) {
+        const type = 'image/jpeg';
+        if (toBlob) {
+          canvas.toBlob(next, type, ratio);
+        } else {
+          next(canvas.toDataURL(type, ratio));
+        }
+      } else {
+        next(changed);
+      }
+    };
+    image.onerror = function() {
+      next(false);
+    };
+    image.src = dataurl;
+  },
   capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   },
@@ -104,13 +186,21 @@ Utils = {
         return window.matchMedia(query).matches;
       };
 
-      if (('ontouchstart' in window) || window.DocumentTouch && document instanceof window.DocumentTouch) {
+      if (
+        'ontouchstart' in window ||
+        (window.DocumentTouch && document instanceof window.DocumentTouch)
+      ) {
         return true;
       }
 
       // include the 'heartz' as a way to have a non matching MQ to help terminate the join
       // https://git.io/vznFH
-      const query = ['(', prefixes.join('touch-enabled),('), 'heartz', ')'].join('');
+      const query = [
+        '(',
+        prefixes.join('touch-enabled),('),
+        'heartz',
+        ')',
+      ].join('');
       return mq(query);
     })();
     Utils.isTouchDevice = () => isTouchable;
@@ -120,7 +210,7 @@ Utils = {
   calculateTouchDistance(touchA, touchB) {
     return Math.sqrt(
       Math.pow(touchA.screenX - touchB.screenX, 2) +
-      Math.pow(touchA.screenY - touchB.screenY, 2)
+        Math.pow(touchA.screenY - touchB.screenY, 2),
     );
   },
 
@@ -136,7 +226,11 @@ Utils = {
       lastTouch = touches[touches.length - 1];
     });
     $(document).on('touchend', selector, function(e) {
-      if (touchStart && lastTouch && Utils.calculateTouchDistance(touchStart, lastTouch) <= 20) {
+      if (
+        touchStart &&
+        lastTouch &&
+        Utils.calculateTouchDistance(touchStart, lastTouch) <= 20
+      ) {
         e.preventDefault();
         const clickEvent = document.createEvent('MouseEvents');
         clickEvent.initEvent('click', true, true);
@@ -145,10 +239,30 @@ Utils = {
     });
   },
 
-  setMatomo(data){
+  manageCustomUI() {
+    Meteor.call('getCustomUI', (err, data) => {
+      if (err && err.error[0] === 'var-not-exist') {
+        Session.set('customUI', false); // siteId || address server not defined
+      }
+      if (!err) {
+        Utils.setCustomUI(data);
+      }
+    });
+  },
+
+  setCustomUI(data) {
+    const currentBoard = Boards.findOne(Session.get('currentBoard'));
+    if (currentBoard) {
+      DocHead.setTitle(`${currentBoard.title} - ${data.productName}`);
+    } else {
+      DocHead.setTitle(`${data.productName}`);
+    }
+  },
+
+  setMatomo(data) {
     window._paq = window._paq || [];
     window._paq.push(['setDoNotTrack', data.doNotTrack]);
-    if (data.withUserName){
+    if (data.withUserName) {
       window._paq.push(['setUserId', Meteor.user().username]);
     }
     window._paq.push(['trackPageView']);
@@ -176,12 +290,12 @@ Utils = {
 
   manageMatomo() {
     const matomo = Session.get('matomo');
-    if (matomo === undefined){
+    if (matomo === undefined) {
       Meteor.call('getMatomoConf', (err, data) => {
-        if (err && err.error[0] === 'var-not-exist'){
+        if (err && err.error[0] === 'var-not-exist') {
           Session.set('matomo', false); // siteId || address server not defined
         }
-        if (!err){
+        if (!err) {
           Utils.setMatomo(data);
         }
       });
@@ -198,10 +312,26 @@ Utils = {
       const element = tempInstance.$(triggerEls[i]);
       if (element.hasClass('trigger-text')) {
         finalString += element.text().toLowerCase();
+      } else if (element.hasClass('user-details')) {
+        let username = element.find('input').val();
+        if (username === undefined || username === '') {
+          username = '*';
+        }
+        finalString += `${element
+          .find('.trigger-text')
+          .text()
+          .toLowerCase()} ${username}`;
       } else if (element.find('select').length > 0) {
-        finalString += element.find('select option:selected').text().toLowerCase();
+        finalString += element
+          .find('select option:selected')
+          .text()
+          .toLowerCase();
       } else if (element.find('input').length > 0) {
-        finalString += element.find('input').val();
+        let inputvalue = element.find('input').val();
+        if (inputvalue === undefined || inputvalue === '') {
+          inputvalue = '*';
+        }
+        finalString += inputvalue;
       }
       // Add space
       if (i !== length - 1) {

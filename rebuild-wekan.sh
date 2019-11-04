@@ -4,7 +4,9 @@ echo "Note: If you use other locale than en_US.UTF-8 , you need to additionally 
 echo "      with 'sudo dpkg-reconfigure locales' , so that MongoDB works correctly."
 echo "      You can still use any other locale as your main locale."
 
-X64NODE="https://nodejs.org/dist/v8.12.0/node-v8.12.0-linux-x64.tar.gz"
+#Below script installs newest node 8.x for Debian/Ubuntu/Mint.
+#NODE_VERSION=8.16.0
+#X64NODE="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz"
 
 function pause(){
 	read -p "$*"
@@ -43,21 +45,22 @@ function npm_call(){
 	rm -rf $TMPDIR
 }
 
-function wekan_repo_check(){
-	git_remotes="$(git remote show 2>/dev/null)"
-	res=""
-	for i in $git_remotes; do
-		res="$(git remote get-url $i | sed 's/.*wekan\/wekan.*/wekan\/wekan/')"
-		if [[ "$res" == "wekan/wekan" ]]; then
-		    break
-		fi
-	done
-
-	if [[ "$res" != "wekan/wekan" ]]; then
-		echo "$PWD is not a wekan repository"
-		exit;
-	fi
-}
+#function wekan_repo_check(){
+## UNCOMMENTING, IT'S NOT REQUIRED THAT /HOME/USERNAME IS /HOME/WEKAN
+#	git_remotes="$(git remote show 2>/dev/null)"
+#	res=""
+#	for i in $git_remotes; do
+#		res="$(git remote get-url $i | sed 's/.*wekan\/wekan.*/wekan\/wekan/')"
+#		if [[ "$res" == "wekan/wekan" ]]; then
+#		    break
+#		fi
+#	done
+#
+#	if [[ "$res" != "wekan/wekan" ]]; then
+#		echo "$PWD is not a wekan repository"
+#		exit;
+#	fi
+#}
 
 echo
 PS3='Please enter your choice: '
@@ -69,31 +72,16 @@ do
 
 		if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	                echo "Linux";
-
-			if [ "$(grep -Ei 'buntu|mint' /etc/*release)" ]; then
-				sudo apt install -y build-essential git curl wget
-#				sudo apt -y install nodejs npm
-#				npm_call -g install n
-#				sudo n 8.12.0
-			fi
-
-#			if [ "$(grep -Ei 'debian' /etc/*release)" ]; then
-#				sudo apt install -y build-essential git curl wget
-#				echo "Debian, or Debian on Windows Subsystem for Linux"
-#				curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-#				sudo apt install -y nodejs
-#			fi
-
-			# TODO: Add Sandstorm for version of Node.js install
-			#MACHINE_TYPE=`uname -m`
-			#if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-			#	# 64-bit stuff here
-			#	wget ${X64NODE}
-			#	sudo tar -C /usr/local --strip-components 1 -xzf ${X64NODE}
-			#elif [ ${MACHINE_TYPE} == '32bit' ]; then
-			#	echo "TODO: 32-bit Linux install here"
-			#	exit
-			#fi
+			# Debian, Ubuntu, Mint
+			sudo apt-get install -y build-essential gcc g++ make git curl wget
+			# npm nodejs
+			#sudo npm -g install npm
+			curl -0 -L https://npmjs.org/install.sh | sudo sh
+			sudo chown -R $(id -u):$(id -g) $HOME/.npm
+			sudo npm -g install n
+			sudo n 8.16.1
+			#curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+			#sudo apt-get install -y nodejs
 		elif [[ "$OSTYPE" == "darwin"* ]]; then
 		        echo "macOS";
 			pause '1) Install XCode 2) Install Node 8.x from https://nodejs.org/en/ 3) Press [Enter] key to continue.'
@@ -118,41 +106,45 @@ do
 			exit;
 		fi
 
-	        ## Latest npm with Meteor 1.6
+	        ## Latest npm with Meteor 1.8.x
 	        npm_call -g install npm
 	        npm_call -g install node-gyp
-	        # Latest fibers for Meteor 1.6
-	        npm_call -g install fibers@2.0.0
+	        # Latest fibers for Meteor 1.8.x
+		sudo mkdir -p /usr/local/lib/node_modules/fibers/.node-gyp
+	        npm_call -g install fibers@4.0.1
 	        # Install Meteor, if it's not yet installed
 	        curl https://install.meteor.com | bash
-#	        mkdir ~/repos
-#	        cd ~/repos
-#	        git clone https://github.com/wekan/wekan.git
-#	        cd wekan
-#	        git checkout devel
+		sudo chown -R $(id -u):$(id -g) $HOME/.npm $HOME/.meteor
 		break
 		;;
         "Build Wekan")
 		echo "Building Wekan."
-		wekan_repo_check
-		rm -rf packages
-		mkdir packages
-		cd packages
-		git clone --depth 1 -b master https://github.com/wekan/flow-router.git kadira-flow-router
-		git clone --depth 1 -b master https://github.com/meteor-useraccounts/core.git meteor-useraccounts-core
-		git clone --depth 1 -b master https://github.com/wekan/meteor-accounts-cas.git
-		git clone --depth 1 -b master https://github.com/wekan/wekan-ldap.git
-		if [[ "$OSTYPE" == "darwin"* ]]; then
-			echo "sed at macOS";
-			sed -i '' 's/api\.versionsFrom/\/\/api.versionsFrom/' ~/repos/wekan/packages/meteor-useraccounts-core/package.js
-		else
-			echo "sed at ${OSTYPE}"
-			sed -i 's/api\.versionsFrom/\/\/api.versionsFrom/' ~/repos/wekan/packages/meteor-useraccounts-core/package.js
-		fi
-
-		cd ..
-		rm -rf node_modules
-		meteor npm install
+		#wekan_repo_check
+		# REPOS BELOW ARE INCLUDED TO WEKAN REPO
+		#rm -rf packages/kadira-flow-router packages/meteor-useraccounts-core packages/meteor-accounts-cas packages/wekan-ldap packages/wekan-ldap packages/wekan-scrfollbar packages/meteor-accounts-oidc packages/markdown
+		#mkdir packages
+		#cd packages
+		#git clone --depth 1 -b master https://github.com/wekan/flow-router.git kadira-flow-router
+		#git clone --depth 1 -b master https://github.com/meteor-useraccounts/core.git meteor-useraccounts-core
+		#git clone --depth 1 -b master https://github.com/wekan/meteor-accounts-cas.git
+		#git clone --depth 1 -b master https://github.com/wekan/wekan-ldap.git
+		#git clone --depth 1 -b master https://github.com/wekan/wekan-scrollbar.git
+		#git clone --depth 1 -b master https://github.com/wekan/meteor-accounts-oidc.git
+		#git clone --depth 1 -b master --recurse-submodules https://github.com/wekan/markdown.git
+                #mv meteor-accounts-oidc/packages/switch_accounts-oidc wekan_accounts-oidc
+                #mv meteor-accounts-oidc/packages/switch_oidc wekan_oidc
+                #rm -rf meteor-accounts-oidc
+		#if [[ "$OSTYPE" == "darwin"* ]]; then
+		#	echo "sed at macOS";
+		#	sed -i '' 's/api\.versionsFrom/\/\/api.versionsFrom/' ~/repos/wekan/packages/meteor-useraccounts-core/package.js
+		#else
+		#	echo "sed at ${OSTYPE}"
+		#	sed -i 's/api\.versionsFrom/\/\/api.versionsFrom/' ~/repos/wekan/packages/meteor-useraccounts-core/package.js
+		#fi
+		#cd ..
+		sudo chown -R $(id -u):$(id -g) $HOME/.npm $HOME/.meteor
+		rm -rf node_modules .meteor/local
+		npm install
 		rm -rf .build
 		meteor build .build --directory
 		cp -f fix-download-unicode/cfs_access-point.txt .build/bundle/programs/server/packages/cfs_access-point.js
@@ -164,7 +156,7 @@ do
 		#meteor npm install bcrypt
 		cd .build/bundle/programs/server
 		rm -rf node_modules
-		meteor npm install
+		npm install
 		#meteor npm install bcrypt
 		cd ../../../..
 		echo Done.

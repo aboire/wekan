@@ -9,36 +9,34 @@ head
     packages.
   link(rel="shortcut icon" href="/wekan-favicon.png")
   link(rel="apple-touch-icon" href="/wekan-favicon.png")
-  link(rel="mask-icon" href="/wekan-150.svg")
+  link(rel="mask-icon" href="/wekan-logo-150.svg")
   link(rel="manifest" href="/wekan-manifest.json")
 
 template(name="userFormsLayout")
   section.auth-layout
-    unless currentSetting.hideLogo
-      h1.at-form-landing-logo
-        img(src="{{pathFor '/wekan-logo.png'}}" alt="Wekan")
-    if currentSetting.hideLogo
-      h1
-        br
-        br
+    h1.at-form-landing-logo
+      img(src="/wekan-logo.png" alt="Wekan")
     section.auth-dialog
-      +Template.dynamic(template=content)
-      +connectionMethod
-      if isCas
-        .at-form
-          button#cas(class='at-btn submit' type='submit') {{casSignInLabel}}
-      div.at-form-lang
-        select.select-lang.js-userform-set-language
-          each languages
-            if isCurrentLanguage
-              option(value="{{tag}}" selected="selected") {{name}}
-            else
-              option(value="{{tag}}") {{name}}
+      if isLoading
+        +loader
+      else
+        +Template.dynamic(template=content)
+        if currentSetting.displayAuthenticationMethod
+          +connectionMethod(authenticationMethod=currentSetting.defaultAuthenticationMethod)
+        div.at-form-lang
+          select.select-lang.js-userform-set-language
+            each languages
+              if isCurrentLanguage
+                option(value="{{tag}}" selected="selected") {{name}}
+              else
+                option(value="{{tag}}") {{name}}
 
 template(name="defaultLayout")
   +header
   #content
+    | {{{afterBodyStart}}}
     +Template.dynamic(template=content)
+    | {{{beforeBodyEnd}}}
   if (Modal.isOpen)
     #modal
       .overlay
@@ -64,3 +62,14 @@ template(name="message")
     unless currentUser
       with(pathFor route='atSignIn')
         p {{{_ 'page-maybe-private' this}}}
+
+template(name="loader")
+  h1.loadingText {{_ 'loading'}}
+  .lds-roller
+    div
+    div
+    div
+    div
+    div
+    div
+    div
